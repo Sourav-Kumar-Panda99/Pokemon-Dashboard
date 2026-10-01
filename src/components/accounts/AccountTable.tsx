@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpDown, BadgeDollarSign, CircleCheck, CircleX, Download, Shapes, Trash2, Undo2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, BadgeDollarSign, CircleX, Download, Shapes, Trash2, X } from "lucide-react";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { changeTypeAction } from "@/app/actions/accounts";
 import { Avatar } from "@/components/ui/Avatar";
@@ -128,7 +128,7 @@ export function AccountTable({
                 )}
                 <SortHeader column="type">Type</SortHeader>
                 <SortHeader column="status">Status</SortHeader>
-                {!showSale && <SortHeader column="asking_price" className="text-right">Asking Price</SortHeader>}
+                {!showSale && <SortHeader column="asking_price" className="text-right">{isAdmin ? "Price" : "Asking Price"}</SortHeader>}
                 {isAdmin && <SortHeader column="submitter">Submitted By</SortHeader>}
                 {showSale ? <SortHeader column="sold_at">Sold On</SortHeader> : <SortHeader column="created_at">{isAdmin ? "Added On" : "Submitted"}</SortHeader>}
                 {showSale && <th scope="col" className="px-2.5 py-3 text-right">Price</th>}
@@ -184,8 +184,25 @@ export function AccountTable({
                       <AccountStatusBadge status={row.status} />
                     </td>
                     {!showSale && (
-                      <td className="px-2.5 py-3 text-right whitespace-nowrap tabular-nums">
-                        {row.asking_price !== null ? <span className="font-semibold text-sky-200">{formatCurrency(row.asking_price)}</span> : <span className="text-slate-600">—</span>}
+                      <td className="px-2.5 py-2 text-right text-xs whitespace-nowrap tabular-nums">
+                        {row.asking_price === null && row.sale_price === null ? (
+                          <span className="text-sm text-slate-600">—</span>
+                        ) : (
+                          <>
+                            {row.asking_price !== null && (
+                              <span className="block">
+                                <span className="text-slate-500">Ask </span>
+                                <span className="text-sm font-semibold text-sky-200">{formatCurrency(row.asking_price)}</span>
+                              </span>
+                            )}
+                            {row.sale_price !== null && (
+                              <span className="block">
+                                <span className="text-slate-500">Sold </span>
+                                <span className="text-sm font-semibold text-emerald-300">{formatCurrency(row.sale_price)}</span>
+                              </span>
+                            )}
+                          </>
+                        )}
                       </td>
                     )}
                     {isAdmin && (
@@ -264,7 +281,8 @@ export function AccountTable({
             <div className="mt-3 flex items-center justify-between gap-2">
               <p className="text-xs text-slate-500">
                 {showSale ? `Sold ${formatDate(row.sold_at)} · ${formatCurrency(row.sale_price)}` : `Added ${formatDate(row.created_at)}`}
-                {!showSale && row.asking_price !== null && <span className="ml-2 font-semibold text-sky-200">Asking {formatCurrency(row.asking_price)}</span>}
+                {!showSale && row.asking_price !== null && <span className="ml-2 font-semibold text-sky-200">Ask {formatCurrency(row.asking_price)}</span>}
+                {!showSale && row.sale_price !== null && <span className="ml-2 font-semibold text-emerald-300">Sold {formatCurrency(row.sale_price)}</span>}
               </p>
               <AccountRowActions row={row} role={role} base={base} onAction={request} />
             </div>
@@ -281,17 +299,11 @@ export function AccountTable({
               selected
             </span>
             <div className="flex flex-1 flex-wrap items-center gap-1.5">
-              <button type="button" className="btn btn-sm btn-ghost" disabled={eligible("APPROVE").length === 0} onClick={() => request("APPROVE", eligible("APPROVE"))}>
-                <CircleCheck className="size-3.5 text-emerald-300" /> Approve
-              </button>
               <button type="button" className="btn btn-sm btn-ghost" disabled={eligible("REJECT").length === 0} onClick={() => request("REJECT", eligible("REJECT"))}>
                 <CircleX className="size-3.5" /> Reject
               </button>
               <button type="button" className="btn btn-sm btn-ghost" disabled={eligible("MARK_SOLD").length === 0} onClick={() => request("MARK_SOLD", eligible("MARK_SOLD"))}>
                 <BadgeDollarSign className="size-3.5 text-rose-300" /> Mark Sold
-              </button>
-              <button type="button" className="btn btn-sm btn-ghost" disabled={eligible("MARK_UNSOLD").length === 0} onClick={() => request("MARK_UNSOLD", eligible("MARK_UNSOLD"))}>
-                <Undo2 className="size-3.5 text-emerald-300" /> Mark Unsold
               </button>
               <Menu
                 align="left"

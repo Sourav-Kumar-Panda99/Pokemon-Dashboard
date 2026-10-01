@@ -29,8 +29,7 @@ export function AccountDetailView({ account, viewer }: { account: AccountDetail;
   const isAdmin = viewer.role === "ADMIN";
   const base = isAdmin ? "/admin" : "/dashboard";
   const adminLabel = (name: string | null) => name ?? (isAdmin ? "Deleted user" : "Admin");
-  const inventoryState =
-    account.status === "SOLD" ? "Sold" : account.status === "UNSOLD" || account.status === "APPROVED" ? "Unsold · available" : account.status === "PENDING" ? "Awaiting review" : "Not in inventory";
+  const inventoryState = account.status === "SOLD" ? "Sold" : account.status === "PENDING" ? "Pending · in stock" : "Rejected · not for sale";
 
   return (
     <div className="space-y-6">
@@ -154,8 +153,8 @@ export function AccountDetailView({ account, viewer }: { account: AccountDetail;
 
           <Panel title="Inventory" icon={PackageCheck}>
             <dl className="divide-y divide-white/[0.05]">
-              <Row label="Sold / Unsold">
-                <span className={account.status === "SOLD" ? "font-semibold text-rose-300" : account.status === "UNSOLD" || account.status === "APPROVED" ? "font-semibold text-emerald-300" : "text-slate-400"}>
+              <Row label="State">
+                <span className={account.status === "SOLD" ? "font-semibold text-rose-300" : account.status === "PENDING" ? "font-semibold text-yellow-200" : "text-slate-400"}>
                   {inventoryState}
                 </span>
               </Row>
@@ -165,10 +164,12 @@ export function AccountDetailView({ account, viewer }: { account: AccountDetail;
                 </Row>
               )}
               <Row label="Sale Date">{account.sold_at ? formatDateTime(account.sold_at) : "—"}</Row>
-              {isAdmin && <Row label="Sale Price">{formatCurrency(account.sale_price)}</Row>}
+              {isAdmin && (
+                <Row label="Sold For">
+                  {account.sale_price !== null ? <span className="font-semibold text-emerald-300">{formatCurrency(account.sale_price)}</span> : "—"}
+                </Row>
+              )}
               {account.sold_at && isAdmin && <Row label="Sold By">{adminLabel(account.sold_by_name)}</Row>}
-              <Row label="Approved By">{account.approved_at ? adminLabel(account.approved_by_name) : "—"}</Row>
-              <Row label="Approved At">{account.approved_at ? formatDateTime(account.approved_at) : "—"}</Row>
               {account.rejected_at && <Row label="Rejected At">{formatDateTime(account.rejected_at)}</Row>}
             </dl>
           </Panel>

@@ -31,7 +31,7 @@ export default async function PendingPage({ searchParams }: { searchParams: Prom
         description={
           <>
             <span className="font-semibold text-yellow-200">{formatNumber(accounts.total)}</span> submission{accounts.total === 1 ? "" : "s"} waiting.
-            Approving moves an account to the inventory as Unsold.
+            Mark each one Sold (with the price you sold it for) or Rejected.
           </>
         }
       />
@@ -56,8 +56,8 @@ export default async function PendingPage({ searchParams }: { searchParams: Prom
               title="No pending submissions"
               description="All caught up! New submissions will appear here for review."
               action={
-                <Link href="/admin/accounts?status=UNSOLD" className="btn btn-ghost">
-                  View unsold inventory
+                <Link href="/admin/sales" className="btn btn-ghost">
+                  View sales
                 </Link>
               }
             />

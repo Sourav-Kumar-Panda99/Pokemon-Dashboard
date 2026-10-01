@@ -93,14 +93,10 @@ async function main() {
   await test("PTC login without password is refused", async () => {
     await rejects(rpc(sam, "submit_account", { p_type: "NEW", p_login_email: "y@example.com", p_login_password_enc: enc("a"), p_ptc_login: "only_login", p_asking_price: 5 }), "PTC password");
   });
-  await test("auto-approve is honoured for admins only", async () => {
+  await test("every new account starts as Pending (auto-approve no longer exists)", async () => {
     adminAccount = await rpc<number>(admin, "submit_account", { p_type: "OLD", p_login_email: "admin.add@example.com", p_login_password_enc: enc("pw-3"), p_auto_approve: true });
     const detail = await rpc<{ status: string }>(admin, "get_account_detail", { p_account_id: adminAccount });
-    assert.equal(detail.status, "UNSOLD");
-    const sneaky = await rpc<number>(sam, "submit_account", { p_type: "OLD", p_login_email: "sneaky@example.com", p_login_password_enc: enc("pw"), p_auto_approve: true });
-    const sneakyDetail = await rpc<{ status: string }>(sam, "get_account_detail", { p_account_id: sneaky });
-    assert.equal(sneakyDetail.status, "PENDING");
-    await rpc(admin, "delete_accounts", { p_account_ids: [sneaky] });
+    assert.equal(detail.status, "PENDING");
   });
 
   await test("NEW IDs need an asking price from submitters; other types never keep one", async () => {
@@ -151,7 +147,7 @@ async function main() {
 
   console.log("Admin-only operations");
   await test("submitters cannot approve, sell, export or read logs", async () => {
-    await rejects(rpc(riley, "set_account_status", { p_account_ids: [rileyAccount], p_action: "APPROVE" }), "Admin access required");
+    await rejects(rpc(riley, "set_account_status", { p_account_ids: [rileyAccount], p_action: "MARK_SOLD", p_price: 1 }), "Admin access required");
     await rejects(rpc(riley, "admin_get_account_secret", { p_account_id: rileyAccount, p_field: "login_password" }), "Admin access required");
     await rejects(rpc(riley, "admin_export_accounts", { p_account_ids: [rileyAccount], p_include_secrets: true }), "Admin access required");
     await rejects(rpc(riley, "list_activity"), "Admin access required");
@@ -180,37 +176,62 @@ async function main() {
   });
 
   console.log("Workflow");
-  await test("approve → UNSOLD, notifies submitter, locks submitter edits", async () => {
-    const result = await rpc<{ updated: number }>(admin, "set_account_status", { p_account_ids: [rileyAccount], p_action: "APPROVE" });
+  await test("mark sold → SOLD with price, notifies submitter, locks submitter edits", async () => {
+    const result = await rpc<{ updated: number }>(admin, "set_account_status", { p_account_ids: [rileyAccount], p_action: "MARK_SOLD", p_price: 19.5 });
     assert.equal(result.updated, 1);
-    const detail = await rpc<{ status: string; approved_by_name: string | null }>(riley, "get_account_detail", { p_account_id: rileyAccount });
-    assert.equal(detail.status, "UNSOLD");
-    assert.equal(detail.approved_by_name, null, "admin identity is hidden from submitters by RLS");
+    const detail = await rpc<{ status: string; sold_by_name: string | null; sale_price: number | null }>(riley, "get_account_detail", { p_account_id: rileyAccount });
+    assert.equal(detail.status, "SOLD");
+    assert.equal(detail.sold_by_name, null, "admin identity is hidden from submitters by RLS");
+    assert.equal(detail.sale_price, null, "sale prices are admin-only");
     await rejects(rpc(riley, "update_account", { p_account_id: rileyAccount, p_type: "NEW", p_login_email: "riley.trainer@example.com" }), "Only pending");
     await rejects(rpc(riley, "delete_accounts", { p_account_ids: [rileyAccount] }), "No accounts could be deleted");
   });
-  await test("mark sold / unsold keeps sales in sync", async () => {
-    await rpc(admin, "set_account_status", { p_account_ids: [rileyAccount], p_action: "MARK_SOLD", p_price: 19.5 });
-    let sales = await queryAsUser<{ voided_at: string | null; price: string }>(db, admin, `select voided_at, price from public.sales where account_id = ${rileyAccount}`);
-    assert.equal(sales.length, 1);
-    assert.equal(Number(sales[0].price), 19.5);
-    await rpc(admin, "set_account_status", { p_account_ids: [rileyAccount], p_action: "MARK_UNSOLD" });
-    sales = await queryAsUser(db, admin, `select voided_at, price from public.sales where account_id = ${rileyAccount} and voided_at is null`);
+  await test("moving a sold account back to Pending voids the sale; selling again records a new one", async () => {
+    await rpc(admin, "update_account", { p_account_id: rileyAccount, p_type: "BOT", p_login_email: "riley.trainer@example.com", p_ptc_login: "riley_ptc", p_notes: "updated", p_status: "PENDING" });
+    let sales = await queryAsUser(db, admin, `select 1 from public.sales where account_id = ${rileyAccount} and voided_at is null`);
     assert.equal(sales.length, 0);
-    await rpc(admin, "set_account_status", { p_account_ids: [rileyAccount], p_action: "MARK_SOLD" });
-    const stats = await rpc<{ sold: number; unsold: number; pending: number }>(admin, "account_stats");
-    assert.deepEqual([stats.sold, stats.unsold, stats.pending], [1, 1, 1]);
+    await rpc(admin, "set_account_status", { p_account_ids: [rileyAccount], p_action: "MARK_SOLD", p_price: 20 });
+    sales = await queryAsUser(db, admin, `select 1 from public.sales where account_id = ${rileyAccount} and voided_at is null`);
+    assert.equal(sales.length, 1);
+    const stats = await rpc<{ sold: number; pending: number; rejected: number }>(admin, "account_stats");
+    assert.deepEqual([stats.sold, stats.pending, stats.rejected], [1, 2, 0]);
   });
-  await test("invalid transitions are skipped, not applied", async () => {
-    const result = await rpc<{ updated: number; skipped: number }>(admin, "set_account_status", { p_account_ids: [samAccount], p_action: "MARK_SOLD" });
+  await test("only Pending accounts can be sold or rejected; Unsold/Approved are gone", async () => {
+    const result = await rpc<{ updated: number; skipped: number }>(admin, "set_account_status", { p_account_ids: [rileyAccount], p_action: "MARK_SOLD", p_price: 1 });
     assert.deepEqual(result, { updated: 0, skipped: 1 });
+    await rejects(rpc(admin, "set_account_status", { p_account_ids: [samAccount], p_action: "APPROVE" }), "Unknown action");
+    await rejects(rpc(admin, "set_account_status", { p_account_ids: [samAccount], p_action: "MARK_UNSOLD" }), "Unknown action");
+    await rejects(rpc(admin, "update_account", { p_account_id: samAccount, p_type: "BOT", p_login_email: "sam.trainer@example.com", p_status: "UNSOLD" }), "no longer used");
+    await rejects(db.query(`update public.accounts set status = 'APPROVED' where id = $1`, [samAccount]), "accounts_status_simplified");
+  });
+  await test("pending accounts can be sold directly, with the sold price recorded", async () => {
+    const direct = await rpc<number>(sam, "submit_account", { p_type: "OLD", p_login_email: "direct.sale@example.com", p_login_password_enc: enc("a") });
+    const result = await rpc<{ updated: number }>(admin, "set_account_status", { p_account_ids: [direct], p_action: "MARK_SOLD", p_price: 42 });
+    assert.equal(result.updated, 1);
+    let detail = await rpc<{ status: string; sale_price: number }>(admin, "get_account_detail", { p_account_id: direct });
+    assert.deepEqual([detail.status, Number(detail.sale_price)], ["SOLD", 42]);
+    // correct the sold price from the edit form
+    await rpc(admin, "update_account", { p_account_id: direct, p_type: "OLD", p_login_email: "direct.sale@example.com", p_status: "SOLD", p_sale_price: 45.5 });
+    detail = await rpc(admin, "get_account_detail", { p_account_id: direct });
+    assert.equal(Number(detail.sale_price), 45.5);
+    // still exactly one active sale record
+    const sold = await queryAsUser<{ n: number }>(db, admin, `select count(*)::int as n from public.sales where account_id = ${direct} and voided_at is null`);
+    assert.equal(sold[0].n, 1);
+    await rpc(admin, "delete_accounts", { p_account_ids: [direct] });
+  });
+  await test("edit form can move a pending account straight to Sold with a price", async () => {
+    const viaEdit = await rpc<number>(sam, "submit_account", { p_type: "BOT", p_login_email: "edit.sale@example.com", p_login_password_enc: enc("a") });
+    await rpc(admin, "update_account", { p_account_id: viaEdit, p_type: "BOT", p_login_email: "edit.sale@example.com", p_status: "SOLD", p_sale_price: 12 });
+    const detail = await rpc<{ status: string; sale_price: number }>(admin, "get_account_detail", { p_account_id: viaEdit });
+    assert.deepEqual([detail.status, Number(detail.sale_price)], ["SOLD", 12]);
+    await rpc(admin, "delete_accounts", { p_account_ids: [viaEdit] });
   });
   await test("submitter sees notifications and a sanitised history", async () => {
     const notes = await rpc<{ unread: number; rows: Array<{ kind: string }> }>(riley, "list_notifications");
-    assert.ok(notes.unread >= 2);
+    assert.ok(notes.unread >= 1 && notes.rows.some((n) => n.kind === "SOLD"));
     const history = await rpc<ListResult>(riley, "list_my_activity");
     const actions = history.rows.map((r) => r.action);
-    assert.ok(actions.includes("APPROVED") && actions.includes("MARKED_SOLD"));
+    assert.ok(actions.includes("MARKED_SOLD") && !actions.includes("APPROVED"));
     assert.ok(!actions.includes("CREDENTIALS_REVEALED"), "reveal events stay admin-only");
   });
   await test("credential reveals are audited without the secret", async () => {
@@ -290,7 +311,7 @@ async function main() {
     const newIds = await callAsUser<ListResult>(fresh.db, anAdmin, "list_accounts", { p_type: "NEW", p_page_size: 100 });
     assert.ok(newIds.rows.every((r) => Number(r.asking_price) > 0), "seeded NEW IDs carry an asking price");
     assert.deepEqual([stats.new, stats.bot, stats.old], [85, 95, 70]);
-    assert.deepEqual([stats.sold, stats.unsold, stats.pending], [70, 160, 12]);
+    assert.deepEqual([stats.sold, stats.pending, stats.rejected], [70, 175, 5]);
     const page = await callAsUser<ListResult>(fresh.db, anAdmin, "list_accounts", { p_page: 13, p_page_size: 20 });
     assert.equal(page.rows.length, 10);
     await fresh.db.close();

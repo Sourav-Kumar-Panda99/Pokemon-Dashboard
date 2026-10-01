@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeDollarSign, Check, CircleCheck, CircleX, Copy, Ellipsis, Eye, Pencil, Trash2, Undo2 } from "lucide-react";
+import { BadgeDollarSign, Check, CircleX, Copy, Ellipsis, Eye, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Menu, MenuDivider, MenuItem } from "@/components/ui/Menu";
+import { Menu, MenuItem } from "@/components/ui/Menu";
 import { useToast } from "@/components/ui/Toast";
 import { STATUS_ACTION_FROM, TYPE_META, STATUS_META } from "@/lib/constants";
 import { formatAccountId } from "@/lib/format";
@@ -93,18 +93,11 @@ export function AccountRowActions({
         >
           {(close) => (
             <>
-              <MenuItem tone="success" icon={<CircleCheck />} disabled={!can("APPROVE")} onSelect={() => (close(), onAction("APPROVE", [row.id]))}>
-                Approve
-              </MenuItem>
-              <MenuItem icon={<CircleX />} disabled={!can("REJECT")} onSelect={() => (close(), onAction("REJECT", [row.id]))}>
-                Reject
-              </MenuItem>
-              <MenuDivider />
               <MenuItem tone="warning" icon={<BadgeDollarSign />} disabled={!can("MARK_SOLD")} onSelect={() => (close(), onAction("MARK_SOLD", [row.id], row.asking_price))}>
                 Mark Sold
               </MenuItem>
-              <MenuItem icon={<Undo2 />} disabled={!can("MARK_UNSOLD")} onSelect={() => (close(), onAction("MARK_UNSOLD", [row.id]))}>
-                Mark Unsold
+              <MenuItem icon={<CircleX />} disabled={!can("REJECT")} onSelect={() => (close(), onAction("REJECT", [row.id]))}>
+                Reject
               </MenuItem>
             </>
           )}

@@ -1,7 +1,7 @@
 export type Role = "ADMIN" | "SUBMITTER";
 export type AccountType = "NEW" | "BOT" | "OLD";
-export type AccountStatus = "PENDING" | "APPROVED" | "UNSOLD" | "SOLD" | "REJECTED";
-export type StatusAction = "APPROVE" | "REJECT" | "MARK_SOLD" | "MARK_UNSOLD";
+export type AccountStatus = "PENDING" | "SOLD" | "REJECTED";
+export type StatusAction = "REJECT" | "MARK_SOLD";
 export type CredentialField = "login_password" | "ptc_password";
 
 export type ActivityAction =
@@ -64,11 +64,8 @@ export interface AccountStats {
   bot: number;
   old: number;
   pending: number;
-  approved: number;
-  unsold: number;
   sold: number;
   rejected: number;
-  reviewed: number;
   sold_this_month: number;
   added_this_week: number;
 }
@@ -139,7 +136,6 @@ export interface UserSummary {
   created_at: string;
   accounts_total: number;
   accounts_pending: number;
-  accounts_unsold: number;
   accounts_sold: number;
   accounts_rejected: number;
 }
@@ -153,7 +149,7 @@ export interface SubmitterOption {
 
 export interface SalesOverview {
   total_sold: number;
-  total_unsold: number;
+  /** Pending accounts — in stock, not sold yet. */
   available: number;
   sold_this_month: number;
   sold_in_range: number;

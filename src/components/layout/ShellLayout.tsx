@@ -13,7 +13,7 @@ export async function ShellLayout({ user, children }: { user: CurrentUser; child
   return (
     <AppShell
       user={user}
-      counters={{ pending: stats.pending, total: stats.total, unsold: stats.unsold, sold: stats.sold }}
+      counters={{ pending: stats.pending, total: stats.total, sold: stats.sold }}
       notifications={notifications}
       demoMode={getBackendMode() === "demo"}
     >

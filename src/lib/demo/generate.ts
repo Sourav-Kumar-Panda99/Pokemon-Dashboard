@@ -6,7 +6,7 @@
 
 export type DemoRole = "ADMIN" | "SUBMITTER";
 export type DemoAccountType = "NEW" | "BOT" | "OLD";
-export type DemoAccountStatus = "PENDING" | "APPROVED" | "UNSOLD" | "SOLD" | "REJECTED";
+export type DemoAccountStatus = "PENDING" | "SOLD" | "REJECTED";
 
 export interface DemoUser {
   key: string;
@@ -23,7 +23,6 @@ export interface DemoEvent {
     | "SUBMITTED"
     | "EDITED"
     | "TYPE_CHANGED"
-    | "APPROVED"
     | "REJECTED"
     | "MARKED_SOLD"
     | "CREDENTIALS_REVEALED"
@@ -58,7 +57,7 @@ export interface DemoAccount {
 export interface DemoNotification {
   userKey: string;
   accountIndex: number;
-  kind: "APPROVED" | "REJECTED" | "SOLD";
+  kind: "REJECTED" | "SOLD";
   title: string;
   body: string;
   createdAt: Date;
@@ -168,10 +167,8 @@ export function generateDemoData(now: Date = new Date(), seed = 20261001): DemoD
   ]);
   const statuses = shuffle([
     ...Array<DemoAccountStatus>(70).fill("SOLD"),
-    ...Array<DemoAccountStatus>(160).fill("UNSOLD"),
-    ...Array<DemoAccountStatus>(12).fill("PENDING"),
+    ...Array<DemoAccountStatus>(175).fill("PENDING"),
     ...Array<DemoAccountStatus>(5).fill("REJECTED"),
-    ...Array<DemoAccountStatus>(3).fill("APPROVED"),
   ]);
 
   const usedEmails = new Set<string>();
@@ -196,7 +193,7 @@ export function generateDemoData(now: Date = new Date(), seed = 20261001): DemoD
       usedPtc.add(ptcLogin);
     }
 
-    const accountAgeDays = status === "PENDING" ? rand() * 6 + 0.05 : rand() * 280 + 8;
+    const accountAgeDays = status === "SOLD" ? rand() * 280 + 8 : rand() * 280 + 0.05;
     let createdAt = ago(accountAgeDays);
     if (createdAt < user.createdAt) {
       submitterKey = "riley";
@@ -218,19 +215,17 @@ export function generateDemoData(now: Date = new Date(), seed = 20261001): DemoD
     let soldAt: Date | null = null;
     let salePrice: number | null = null;
 
-    if (status !== "PENDING" && status !== "REJECTED") {
-      approvedAt = new Date(Math.min(createdAt.getTime() + rand() * 3 * DAY + HOUR, now.getTime() - HOUR));
-      events.push({ action: "APPROVED", actorKey: reviewer, at: approvedAt, details: { from: "PENDING", to: status === "APPROVED" ? "APPROVED" : "UNSOLD" } });
-    }
     if (status === "REJECTED") {
       rejectedAt = new Date(Math.min(createdAt.getTime() + rand() * 2 * DAY + HOUR, now.getTime() - HOUR));
       events.push({ action: "REJECTED", actorKey: reviewer, at: rejectedAt, details: { from: "PENDING", to: "REJECTED", reason: pick(REJECT_REASONS) } });
     }
-    if (status === "SOLD" && approvedAt) {
-      const maxGap = Math.max((now.getTime() - approvedAt.getTime()) / DAY - 0.1, 0.1);
-      soldAt = new Date(approvedAt.getTime() + Math.min(rand() * 60 + 0.5, maxGap) * DAY);
+    if (status === "SOLD") {
+      // Direct sale: Pending → Sold. The sale also counts as the review.
+      const maxGap = Math.max((now.getTime() - createdAt.getTime()) / DAY - 0.1, 0.1);
+      soldAt = new Date(createdAt.getTime() + Math.min(rand() * 60 + 0.5, maxGap) * DAY);
+      approvedAt = soldAt;
       salePrice = Math.round((type === "OLD" ? 35 + rand() * 60 : type === "BOT" ? 6 + rand() * 18 : 12 + rand() * 25) * 100) / 100;
-      events.push({ action: "MARKED_SOLD", actorKey: reviewer, at: soldAt, details: { from: "UNSOLD", to: "SOLD" } });
+      events.push({ action: "MARKED_SOLD", actorKey: reviewer, at: soldAt, details: { from: "PENDING", to: "SOLD" } });
     }
 
     if (approvedAt && rand() < 0.04) {
@@ -274,9 +269,7 @@ export function generateDemoData(now: Date = new Date(), seed = 20261001): DemoD
       const ageDays = (now.getTime() - event.at.getTime()) / DAY;
       if (ageDays > 21) continue;
       const label = `#${String(index + 1).padStart(3, "0")}`;
-      if (event.action === "APPROVED") {
-        notifications.push({ userKey: account.submitterKey, accountIndex: index, kind: "APPROVED", title: `Account ${label} approved`, body: "Your submission passed review and is now in the inventory.", createdAt: event.at, read: ageDays > 4 });
-      } else if (event.action === "REJECTED") {
+      if (event.action === "REJECTED") {
         notifications.push({ userKey: account.submitterKey, accountIndex: index, kind: "REJECTED", title: `Account ${label} rejected`, body: `Reason: ${String(event.details.reason)}`, createdAt: event.at, read: ageDays > 4 });
       } else if (event.action === "MARKED_SOLD") {
         notifications.push({ userKey: account.submitterKey, accountIndex: index, kind: "SOLD", title: `Account ${label} sold`, body: "An account you submitted has been marked as sold.", createdAt: event.at, read: ageDays > 4 });

@@ -157,11 +157,6 @@ export function ImportDialog({ open, onClose }: { open: boolean; onClose: () => 
           </button>
         </div>
 
-        <label className="flex items-center gap-2.5 text-sm text-slate-300">
-          <input type="checkbox" name="approve" className="size-4 accent-yellow-400" />
-          Approve imported accounts immediately (status Unsold)
-        </label>
-
         {result && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <p className="text-sm font-semibold text-white">

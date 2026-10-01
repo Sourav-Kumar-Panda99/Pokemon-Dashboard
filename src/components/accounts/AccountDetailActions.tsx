@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BadgeDollarSign, CircleCheck, CircleX, Copy, Pencil, Trash2, Undo2 } from "lucide-react";
+import { BadgeDollarSign, CircleX, Copy, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { STATUS_ACTION_FROM } from "@/lib/constants";
 import type { AccountRow, Role } from "@/lib/types";
@@ -40,19 +40,9 @@ export function AccountDetailActions({
 
   return (
     <div className="flex flex-wrap gap-2">
-      {can("APPROVE") && (
-        <button type="button" className="btn btn-success" onClick={() => request("APPROVE", [account.id])}>
-          <CircleCheck className="size-4" /> Approve
-        </button>
-      )}
       {can("MARK_SOLD") && (
         <button type="button" className="btn btn-primary" onClick={() => request("MARK_SOLD", [account.id], account.asking_price)}>
           <BadgeDollarSign className="size-4" /> Mark Sold
-        </button>
-      )}
-      {can("MARK_UNSOLD") && (
-        <button type="button" className="btn btn-blue" onClick={() => request("MARK_UNSOLD", [account.id])}>
-          <Undo2 className="size-4" /> Mark Unsold
         </button>
       )}
       {can("REJECT") && (

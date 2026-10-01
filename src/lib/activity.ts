@@ -9,6 +9,7 @@ const FIELD_LABELS: Record<string, string> = {
   ptc_password: "PTC password",
   notes: "notes",
   asking_price: "asking price",
+  sale_price: "sold price",
 };
 
 export const ACTION_LABELS: Record<ActivityAction, string> = {
@@ -54,7 +55,9 @@ export const ACTION_TONE: Record<ActivityAction, string> = {
 };
 
 const niceType = (value: unknown) => (TYPE_META[value as AccountType] ? `${TYPE_META[value as AccountType].short} ID` : String(value));
-const statusLabel = (value: unknown) => STATUS_META[value as AccountStatus]?.label ?? String(value);
+// UNSOLD / APPROVED no longer exist but still appear in older history entries.
+const LEGACY_STATUS_LABELS: Record<string, string> = { UNSOLD: "Unsold", APPROVED: "Approved" };
+const statusLabel = (value: unknown) => STATUS_META[value as AccountStatus]?.label ?? LEGACY_STATUS_LABELS[String(value)] ?? String(value);
 const roleLabel = (value: unknown) => ROLE_META[value as Role]?.label ?? String(value);
 
 /**

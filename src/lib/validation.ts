@@ -68,8 +68,8 @@ const ptcLoginField = z
   .optional()
   .transform((value) => (value ? value : undefined));
 
-// Asking price in USD; only meaningful for NEW IDs (ignored for other types).
-const askingPriceField = z
+// Optional USD amount from a form field ("" → undefined), rounded to cents.
+const priceField = z
   .string()
   .trim()
   .optional()
@@ -88,7 +88,8 @@ const accountBase = {
   loginEmail: emailField,
   ptcLogin: ptcLoginField,
   notes: optionalText(1000),
-  askingPrice: askingPriceField,
+  // Asking price: only meaningful for NEW IDs (ignored for other types).
+  askingPrice: priceField,
 };
 
 export const accountCreateSchema = z
@@ -96,7 +97,6 @@ export const accountCreateSchema = z
     ...accountBase,
     loginPassword: secretField.min(1, "Enter the account password"),
     ptcPassword: secretField.optional().transform((value) => (value ? value : undefined)),
-    autoApprove: checkbox,
   })
   .refine((value) => !value.ptcLogin || value.ptcPassword, {
     path: ["ptcPassword"],
@@ -116,16 +116,23 @@ export const accountUpdateSchema = z.object({
     .enum(ACCOUNT_STATUSES as [AccountStatus, ...AccountStatus[]])
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  // Admin only: the price the account sold for (used when status is Sold).
+  salePrice: priceField,
 });
 
 export const idListSchema = z.array(z.number().int().positive()).min(1, "Select at least one account").max(500);
 
-export const statusActionSchema = z.object({
-  ids: idListSchema,
-  action: z.enum(["APPROVE", "REJECT", "MARK_SOLD", "MARK_UNSOLD"]),
-  price: z.number().min(0).max(1_000_000).nullable().optional(),
-  reason: z.string().trim().max(300).optional(),
-});
+export const statusActionSchema = z
+  .object({
+    ids: idListSchema,
+    action: z.enum(["REJECT", "MARK_SOLD"]),
+    price: z.number().min(0, "Enter a valid sale price").max(1_000_000, "Enter a valid sale price").nullable().optional(),
+    reason: z.string().trim().max(300).optional(),
+  })
+  .refine((value) => value.action !== "MARK_SOLD" || (value.price !== null && value.price !== undefined), {
+    path: ["price"],
+    message: "Enter the price you sold it for",
+  });
 
 export function fieldErrors(error: z.ZodError) {
   return z.flattenError(error).fieldErrors as Record<string, string[] | undefined>;

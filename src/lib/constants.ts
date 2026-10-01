@@ -1,7 +1,7 @@
 import type { AccountStatus, AccountType, Role, StatusAction } from "./types";
 
 export const ACCOUNT_TYPES: AccountType[] = ["NEW", "BOT", "OLD"];
-export const ACCOUNT_STATUSES: AccountStatus[] = ["PENDING", "APPROVED", "UNSOLD", "SOLD", "REJECTED"];
+export const ACCOUNT_STATUSES: AccountStatus[] = ["PENDING", "SOLD", "REJECTED"];
 
 export const TYPE_META: Record<AccountType, { label: string; short: string; badge: string; dot: string; glow: string }> = {
   NEW: {
@@ -29,8 +29,6 @@ export const TYPE_META: Record<AccountType, { label: string; short: string; badg
 
 export const STATUS_META: Record<AccountStatus, { label: string; badge: string; dot: string }> = {
   PENDING: { label: "Pending", badge: "border-yellow-400/40 bg-yellow-400/15 text-yellow-300", dot: "bg-yellow-400" },
-  APPROVED: { label: "Approved", badge: "border-blue-400/40 bg-blue-500/15 text-blue-300", dot: "bg-blue-400" },
-  UNSOLD: { label: "Unsold", badge: "border-emerald-400/40 bg-emerald-500/15 text-emerald-300", dot: "bg-emerald-400" },
   SOLD: { label: "Sold", badge: "border-rose-400/40 bg-rose-500/15 text-rose-300", dot: "bg-rose-400" },
   REJECTED: { label: "Rejected", badge: "border-slate-400/30 bg-slate-500/15 text-slate-300", dot: "bg-slate-400" },
 };
@@ -60,12 +58,13 @@ export type SortKey = (typeof SORT_KEYS)[number];
 export const PAGE_SIZES = [10, 20, 50, 100] as const;
 export const DEFAULT_PAGE_SIZE = 20;
 
+/** Statuses an admin picks from in the edit form. */
+export const EDIT_STATUSES: AccountStatus[] = ACCOUNT_STATUSES;
+
 /** Mirrors the transitions allowed by public.set_account_status in Postgres. */
 export const STATUS_ACTION_FROM: Record<StatusAction, AccountStatus[]> = {
-  APPROVE: ["PENDING", "REJECTED"],
-  REJECT: ["PENDING", "APPROVED", "UNSOLD"],
-  MARK_SOLD: ["APPROVED", "UNSOLD"],
-  MARK_UNSOLD: ["APPROVED", "SOLD"],
+  REJECT: ["PENDING"],
+  MARK_SOLD: ["PENDING"],
 };
 
 /** How long a revealed credential stays visible before re-masking. */

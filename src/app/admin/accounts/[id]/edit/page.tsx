@@ -40,6 +40,7 @@ export default async function AdminEditAccountPage({ params }: { params: Promise
           ptcLogin: account.ptc_login,
           notes: account.notes,
           askingPrice: account.asking_price,
+          salePrice: account.sale_price,
         }}
       />
     </div>

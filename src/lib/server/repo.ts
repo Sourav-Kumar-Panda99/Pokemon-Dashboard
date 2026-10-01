@@ -83,7 +83,6 @@ export const submitAccount = (input: {
   ptcLogin?: string;
   ptcPasswordEnc?: string;
   notes?: string;
-  autoApprove?: boolean;
   askingPrice?: number;
 }) =>
   rpc<number>("submit_account", {
@@ -93,7 +92,6 @@ export const submitAccount = (input: {
     p_ptc_login: input.ptcLogin ?? null,
     p_ptc_password_enc: input.ptcPasswordEnc ?? null,
     p_notes: input.notes ?? null,
-    p_auto_approve: input.autoApprove ?? false,
     p_asking_price: input.askingPrice ?? null,
   });
 
@@ -107,6 +105,7 @@ export const updateAccount = (input: {
   notes?: string;
   status?: AccountStatus;
   askingPrice?: number;
+  salePrice?: number;
 }) =>
   rpc<void>("update_account", {
     p_account_id: input.id,
@@ -118,6 +117,7 @@ export const updateAccount = (input: {
     p_notes: input.notes ?? null,
     p_status: input.status ?? null,
     p_asking_price: input.askingPrice ?? null,
+    p_sale_price: input.salePrice ?? null,
   });
 
 export const setAccountStatus = (ids: number[], action: StatusAction, price?: number | null, reason?: string) =>
@@ -158,11 +158,9 @@ export const exportAccounts = (ids: number[], includeSecrets: boolean) =>
 
 export const importAccounts = (
   rows: Array<{ type: AccountType; login_email: string; login_password_enc: string; ptc_login: string | null; ptc_password_enc: string | null; notes: string | null }>,
-  approve: boolean,
 ) =>
   rpc<{ inserted: number; failed: number; errors: Array<{ row: number; message: string }> }>("admin_import_accounts", {
     p_rows: rows,
-    p_approve: approve,
   });
 
 export const setUserRole = (userId: string, role: Role) => rpc<void>("admin_set_user_role", { p_user_id: userId, p_role: role });

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, CircleCheck, CircleX, Pencil, Trash2, UserRound } from "lucide-react";
+import { BadgeDollarSign, CalendarDays, CircleX, Pencil, Trash2, UserRound } from "lucide-react";
 import { useState } from "react";
 import { CaptureBall } from "@/components/art/CaptureBall";
 import { Avatar } from "@/components/ui/Avatar";
@@ -10,7 +10,7 @@ import { formatAccountId, formatCurrency, formatDateTime, formatRelative } from 
 import type { AccountRow } from "@/lib/types";
 import { useAccountActions } from "./useAccountActions";
 
-/** Review queue: one card per pending submission, with bulk approve. */
+/** Review queue: one card per pending submission — Mark Sold (with price) or Reject. */
 export function PendingReview({ rows }: { rows: AccountRow[] }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const { request, dialog } = useAccountActions({ onDone: () => setSelected(new Set()) });
@@ -36,8 +36,13 @@ export function PendingReview({ rows }: { rows: AccountRow[] }) {
           Select all on this page
         </label>
         <div className="flex gap-2">
-          <button type="button" className="btn btn-success btn-sm" disabled={ids.length === 0} onClick={() => request("APPROVE", ids)}>
-            <CircleCheck className="size-4" /> Approve {ids.length > 0 ? ids.length : ""}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={ids.length === 0}
+            onClick={() => request("MARK_SOLD", ids, ids.length === 1 ? rows.find((r) => r.id === ids[0])?.asking_price : null)}
+          >
+            <BadgeDollarSign className="size-4" /> Mark Sold {ids.length > 0 ? ids.length : ""}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" disabled={ids.length === 0} onClick={() => request("REJECT", ids)}>
             <CircleX className="size-4" /> Reject
@@ -97,8 +102,8 @@ export function PendingReview({ rows }: { rows: AccountRow[] }) {
                 {row.notes && <p className="rounded-lg bg-white/[0.03] px-3 py-2 text-xs text-slate-400">{row.notes}</p>}
               </dl>
               <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-5 py-3">
-                <button type="button" className="btn btn-success btn-sm flex-1" onClick={() => request("APPROVE", [row.id])}>
-                  <CircleCheck className="size-4" /> Approve
+                <button type="button" className="btn btn-primary btn-sm flex-1" onClick={() => request("MARK_SOLD", [row.id], row.asking_price)}>
+                  <BadgeDollarSign className="size-4" /> Mark Sold
                 </button>
                 <button type="button" className="btn btn-ghost btn-sm flex-1" onClick={() => request("REJECT", [row.id])}>
                   <CircleX className="size-4" /> Reject

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Backpack, BadgeDollarSign, Bot, Clock, Package, Plus, Sparkles, type LucideIcon } from "lucide-react";
+import { Backpack, BadgeDollarSign, Bot, CircleX, Clock, Hourglass, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { AccountTable } from "@/components/accounts/AccountTable";
 import { FilterBar } from "@/components/accounts/FilterBar";
 import { TransferButtons } from "@/components/accounts/QuickActions";
@@ -31,7 +31,8 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
   let heading = { title: "All Accounts", icon: Backpack as LucideIcon, description: "Every account across all submitters." };
   if (query.type && !query.status) heading = TYPE_HEADINGS[query.type];
   else if (query.status === "SOLD" && !query.type) heading = { title: "Sold Accounts", icon: BadgeDollarSign, description: "Accounts that have been sold." };
-  else if (query.status === "UNSOLD" && !query.type) heading = { title: "Unsold Accounts", icon: Package, description: "Approved accounts available for sale." };
+  else if (query.status === "PENDING" && !query.type) heading = { title: "Pending Accounts", icon: Hourglass, description: "In stock and not sold yet." };
+  else if (query.status === "REJECTED" && !query.type) heading = { title: "Rejected Accounts", icon: CircleX, description: "Submissions that did not pass review." };
   else if (query.type || query.status) {
     heading = {
       title: [query.type && TYPE_META[query.type].label, query.status && STATUS_META[query.status].label].filter(Boolean).join(" · "),

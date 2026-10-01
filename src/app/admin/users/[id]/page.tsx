@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowLeft, BadgeDollarSign, Backpack, CircleX, Hourglass, Package } from "lucide-react";
+import { ArrowLeft, BadgeDollarSign, Backpack, CircleX, Hourglass } from "lucide-react";
 import { AccountTable } from "@/components/accounts/AccountTable";
 import { FilterBar } from "@/components/accounts/FilterBar";
 import { Avatar } from "@/components/ui/Avatar";
@@ -63,10 +63,9 @@ export default async function UserDetailPage({
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Accounts Submitted" value={user.accounts_total} icon={Backpack} tone="yellow" />
         <StatCard label="Pending" value={user.accounts_pending} icon={Hourglass} tone="yellow" />
-        <StatCard label="Unsold" value={user.accounts_unsold} icon={Package} tone="emerald" />
         <StatCard label="Sold" value={user.accounts_sold} icon={BadgeDollarSign} tone="rose" />
         <StatCard label="Rejected" value={user.accounts_rejected} icon={CircleX} tone="slate" />
       </div>

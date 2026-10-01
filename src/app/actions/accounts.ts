@@ -31,7 +31,7 @@ export interface AccountFormState {
   status?: AccountStatus;
 }
 
-const FORM_KEYS = ["type", "loginEmail", "loginPassword", "ptcLogin", "ptcPassword", "notes", "autoApprove", "status", "askingPrice"];
+const FORM_KEYS = ["type", "loginEmail", "loginPassword", "ptcLogin", "ptcPassword", "notes", "status", "askingPrice", "salePrice"];
 const ASKING_PRICE_REQUIRED = { askingPrice: ["Enter your asking price for this new account"] };
 
 function refreshAll() {
@@ -47,7 +47,6 @@ export async function createAccountAction(_prev: AccountFormState, formData: For
     const parsed = accountCreateSchema.safeParse(formValues(formData, FORM_KEYS));
     if (!parsed.success) return { error: "Please fix the highlighted fields.", fieldErrors: fieldErrors(parsed.error) };
     const input = parsed.data;
-    const autoApprove = user.role === "ADMIN" && input.autoApprove;
     if (input.type === "NEW" && input.askingPrice === undefined && user.role !== "ADMIN") {
       return { error: "Please fix the highlighted fields.", fieldErrors: ASKING_PRICE_REQUIRED };
     }
@@ -59,11 +58,10 @@ export async function createAccountAction(_prev: AccountFormState, formData: For
       ptcLogin: input.ptcLogin,
       ptcPasswordEnc: input.ptcPassword ? encryptCredential(input.ptcPassword) : undefined,
       notes: input.notes,
-      autoApprove,
       askingPrice: input.type === "NEW" ? input.askingPrice : undefined,
     });
     refreshAll();
-    return { ok: true, accountId: id, status: autoApprove ? "UNSOLD" : "PENDING" };
+    return { ok: true, accountId: id, status: "PENDING" };
   } catch (error) {
     return { error: toActionError(error) };
   }
@@ -79,6 +77,10 @@ export async function updateAccountAction(accountId: number, _prev: AccountFormS
     if (input.type === "NEW" && input.askingPrice === undefined && user.role !== "ADMIN") {
       return { error: "Please fix the highlighted fields.", fieldErrors: ASKING_PRICE_REQUIRED };
     }
+    const markingSold = user.role === "ADMIN" && input.status === "SOLD";
+    if (markingSold && input.salePrice === undefined) {
+      return { error: "Please fix the highlighted fields.", fieldErrors: { salePrice: ["Enter the price you sold it for"] } };
+    }
 
     await repo.updateAccount({
       id: accountId,
@@ -90,6 +92,7 @@ export async function updateAccountAction(accountId: number, _prev: AccountFormS
       notes: input.notes,
       status: user.role === "ADMIN" ? input.status : undefined,
       askingPrice: input.type === "NEW" ? input.askingPrice : undefined,
+      salePrice: markingSold ? input.salePrice : undefined,
     });
     refreshAll();
     return { ok: true, accountId };
@@ -107,11 +110,11 @@ export async function changeStatusAction(input: {
   try {
     await assertAdmin();
     const parsed = statusActionSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, error: "Invalid request." };
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request." };
     const { ids, action, price, reason } = parsed.data;
     const result = await repo.setAccountStatus(ids, action, price, reason);
     refreshAll();
-    const verb = { APPROVE: "approved", REJECT: "rejected", MARK_SOLD: "marked as sold", MARK_UNSOLD: "marked as unsold" }[action];
+    const verb = { REJECT: "rejected", MARK_SOLD: "marked as sold" }[action];
     const subject = ids.length === 1 ? `Account ${formatAccountId(ids[0])}` : `${result.updated} account${result.updated === 1 ? "" : "s"}`;
     if (result.updated === 0) return { ok: false, error: "That change is not allowed for the selected status." };
     return {
@@ -244,7 +247,6 @@ export async function importAccountsAction(formData: FormData): Promise<ActionRe
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a CSV file to import." };
     if (file.size > 1024 * 1024) return { ok: false, error: "The file is larger than 1 MB." };
-    const approve = formData.get("approve") === "on";
 
     const table = parseCsv(await file.text());
     if (table.length < 2) return { ok: false, error: "The file has no data rows." };
@@ -293,7 +295,7 @@ export async function importAccountsAction(formData: FormData): Promise<ActionRe
 
     let inserted = 0;
     if (payload.length > 0) {
-      const result = await repo.importAccounts(payload, approve);
+      const result = await repo.importAccounts(payload);
       inserted = result.inserted;
       for (const err of result.errors) errors.push({ row: sourceRow[err.row - 1] ?? err.row, message: err.message });
     }

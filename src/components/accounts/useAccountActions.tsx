@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { changeStatusAction, deleteAccountsAction } from "@/app/actions/accounts";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
-import { formatAccountId } from "@/lib/format";
+import { formatAccountId, formatCurrency } from "@/lib/format";
 import type { StatusAction } from "@/lib/types";
 
 export type AccountActionKind = StatusAction | "DELETE";
@@ -12,19 +12,14 @@ export type AccountActionKind = StatusAction | "DELETE";
 interface Pending {
   kind: AccountActionKind;
   ids: number[];
+  /** Submitter's asking price, shown in the Mark Sold sale details. */
+  askingPrice: number | null;
 }
 
 function copyFor(kind: AccountActionKind, ids: number[]) {
   const one = ids.length === 1;
   const subject = one ? `account ${formatAccountId(ids[0])}` : `${ids.length} accounts`;
   switch (kind) {
-    case "APPROVE":
-      return {
-        title: one ? "Approve this account?" : `Approve ${ids.length} accounts?`,
-        description: `${one ? "It" : "They"} will join the inventory as Unsold.`,
-        confirm: "Approve",
-        tone: "success" as const,
-      };
     case "REJECT":
       return {
         title: one ? "Reject this account?" : `Reject ${ids.length} accounts?`,
@@ -35,16 +30,9 @@ function copyFor(kind: AccountActionKind, ids: number[]) {
     case "MARK_SOLD":
       return {
         title: one ? "Mark this account as sold?" : `Mark ${ids.length} accounts as sold?`,
-        description: "The sale date is recorded now and the submitter is notified.",
+        description: "Record the price you sold it for. The sale date is saved now and the submitter is notified.",
         confirm: "Confirm Sale",
         tone: "primary" as const,
-      };
-    case "MARK_UNSOLD":
-      return {
-        title: one ? "Mark this account as unsold?" : `Mark ${ids.length} accounts as unsold?`,
-        description: "The sale is voided and the account returns to available inventory.",
-        confirm: "Mark Unsold",
-        tone: "blue" as const,
       };
     case "DELETE":
       return {
@@ -64,16 +52,20 @@ export function useAccountActions(options: { onDone?: (kind: AccountActionKind, 
   const [pending, startTransition] = useTransition();
   const toast = useToast();
 
-  /** `defaultPrice` pre-fills the sale price (e.g. with the submitter's asking price). */
-  const request = (kind: AccountActionKind, ids: number[], defaultPrice?: number | null) => {
+  /** `askingPrice` is shown in the sale details and pre-fills the sold price. */
+  const request = (kind: AccountActionKind, ids: number[], askingPrice?: number | null) => {
     if (ids.length === 0) return;
-    setPrice(kind === "MARK_SOLD" && defaultPrice !== null && defaultPrice !== undefined ? String(defaultPrice) : "");
+    const asking = askingPrice ?? null;
+    setPrice(kind === "MARK_SOLD" && asking !== null ? String(asking) : "");
     setReason("");
-    setCurrent({ kind, ids });
+    setCurrent({ kind, ids, askingPrice: asking });
   };
 
   const priceValue = price.trim() === "" ? null : Number(price);
   const priceInvalid = priceValue !== null && (!Number.isFinite(priceValue) || priceValue < 0 || priceValue > 1_000_000);
+  // A sold price is required when marking accounts as sold.
+  const priceMissing = priceValue === null;
+  const difference = current?.askingPrice !== null && current?.askingPrice !== undefined && priceValue !== null && !priceInvalid ? priceValue - current.askingPrice : null;
 
   const confirm = () => {
     if (!current) return;
@@ -105,29 +97,47 @@ export function useAccountActions(options: { onDone?: (kind: AccountActionKind, 
       description={copy?.description}
       confirmLabel={copy?.confirm}
       tone={copy?.tone}
-      confirmDisabled={current?.kind === "MARK_SOLD" && priceInvalid}
+      confirmDisabled={current?.kind === "MARK_SOLD" && (priceInvalid || priceMissing)}
     >
       {current?.kind === "MARK_SOLD" && (
-        <div>
-          <label htmlFor="sale-price" className="label">
-            Sale price (optional)
+        <div className="rounded-2xl border border-poke-yellow/25 bg-poke-yellow/[0.05] p-4">
+          <p className="text-[11px] font-bold tracking-[0.16em] text-poke-yellow uppercase">Sale details</p>
+          {current.askingPrice !== null && (
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="text-slate-400">Submitter asked</span>
+              <span className="font-semibold text-sky-200 tabular-nums">{formatCurrency(current.askingPrice)}</span>
+            </div>
+          )}
+          <label htmlFor="sale-price" className="label mt-3">
+            Sold for {current.ids.length > 1 ? "(each)" : ""}
           </label>
           <div className="relative">
-            <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-slate-400">$</span>
+            <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">$</span>
             <input
               id="sale-price"
               type="number"
               inputMode="decimal"
               min="0"
               step="0.01"
+              required
               value={price}
               onChange={(event) => setPrice(event.target.value)}
-              className="input pl-7"
+              className="input pl-7 text-base font-semibold tabular-nums"
               placeholder="0.00"
               aria-invalid={priceInvalid}
+              data-autofocus
             />
           </div>
-          {current.ids.length > 1 && <p className="mt-1.5 text-xs text-slate-500">Applied to each account.</p>}
+          {priceInvalid && <p className="mt-1.5 text-xs text-rose-300">Enter a valid price.</p>}
+          {difference !== null && (
+            <div className="mt-3 flex items-center justify-between border-t border-white/[0.07] pt-3 text-sm">
+              <span className="text-slate-400">Difference vs asking</span>
+              <span className={`font-semibold tabular-nums ${difference >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                {difference >= 0 ? "+" : "−"}
+                {formatCurrency(Math.abs(difference))}
+              </span>
+            </div>
+          )}
         </div>
       )}
       {current?.kind === "REJECT" && (

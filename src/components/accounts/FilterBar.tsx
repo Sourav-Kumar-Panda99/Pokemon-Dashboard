@@ -12,7 +12,7 @@ const TYPE_FILTERS: Array<{ value: "" | AccountType; label: string }> = [
   { value: "BOT", label: "Bot" },
   { value: "OLD", label: "Old" },
 ];
-const STATUS_FILTERS: Array<"" | AccountStatus> = ["", "PENDING", "APPROVED", "SOLD", "UNSOLD", "REJECTED"];
+const STATUS_FILTERS: Array<"" | AccountStatus> = ["", "PENDING", "SOLD", "REJECTED"];
 
 const TYPE_ACTIVE: Record<string, string> = {
   "": "bg-white text-navy-950",

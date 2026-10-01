@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Backpack, BadgeDollarSign, Bot, CalendarCheck, ClipboardList, Clock, Hourglass, Package, Plus, Sparkles } from "lucide-react";
+import { Backpack, BadgeDollarSign, Bot, CalendarCheck, CircleX, ClipboardList, Clock, Hourglass, Plus, Sparkles } from "lucide-react";
 import { ActivityTimeline } from "@/components/activity/ActivityLog";
 import { AccountTable } from "@/components/accounts/AccountTable";
 import { FilterBar } from "@/components/accounts/FilterBar";
@@ -74,12 +74,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           <StatCard label="Bot IDs" value={stats.bot} icon={Bot} tone="violet" href="/admin/accounts?type=BOT" share={share(stats.bot)} />
           <StatCard label="Old IDs" value={stats.old} icon={Clock} tone="amber" href="/admin/accounts?type=OLD" share={share(stats.old)} />
           <StatCard label="Sold" value={stats.sold} icon={BadgeDollarSign} tone="rose" href="/admin/accounts?status=SOLD" share={share(stats.sold)} />
-          <StatCard label="Unsold" value={stats.unsold} icon={Package} tone="emerald" href="/admin/accounts?status=UNSOLD" share={share(stats.unsold)} />
-          <StatCard label="Pending" value={stats.pending} icon={Hourglass} tone="yellow" href="/admin/pending" hint={stats.pending ? "Review" : undefined} />
+          <StatCard label="Pending" value={stats.pending} icon={Hourglass} tone="yellow" href="/admin/pending" share={share(stats.pending)} hint={stats.pending ? "In stock" : undefined} />
+          <StatCard label="Rejected" value={stats.rejected} icon={CircleX} tone="slate" href="/admin/accounts?status=REJECTED" />
           <StatCard label="Sold This Month" value={stats.sold_this_month} icon={CalendarCheck} tone="blue" href="/admin/sales" />
         </div>
         <Suspense>
-          <QuickActions pending={stats.pending} unsold={stats.unsold} sold={stats.sold} />
+          <QuickActions pending={stats.pending} sold={stats.sold} />
         </Suspense>
       </div>
 

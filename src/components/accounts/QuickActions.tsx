@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BadgeDollarSign, Download, Hourglass, Package, Plus, Upload, Users, Zap } from "lucide-react";
+import { BadgeDollarSign, Banknote, Download, Hourglass, Plus, Upload, Users, Zap } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { ExportDialog, ImportDialog } from "./TransferDialogs";
 
@@ -28,7 +28,7 @@ function Action({ href, onClick, icon, label, hint, accent }: { href?: string; o
   );
 }
 
-export function QuickActions({ pending, unsold, sold }: { pending: number; unsold: number; sold: number }) {
+export function QuickActions({ pending, sold }: { pending: number; sold: number }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const params = useSearchParams();
@@ -43,7 +43,7 @@ export function QuickActions({ pending, unsold, sold }: { pending: number; unsol
       <div className="relative grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
         <Action href="/admin/accounts/new" icon={<Plus className="size-4" strokeWidth={3} />} label="Add Account" hint="Add to inventory" accent="bg-poke-yellow text-navy-950" />
         <Action href="/admin/pending" icon={<Hourglass className="size-4" />} label="Review Pending" hint={`${pending} waiting`} accent="bg-yellow-400/15 text-yellow-300" />
-        <Action href="/admin/accounts?status=UNSOLD" icon={<Package className="size-4" />} label="View Unsold" hint={`${unsold} available`} accent="bg-emerald-400/15 text-emerald-300" />
+        <Action href="/admin/sales" icon={<Banknote className="size-4" />} label="Sales Report" hint="Prices & revenue" accent="bg-emerald-400/15 text-emerald-300" />
         <Action href="/admin/accounts?status=SOLD" icon={<BadgeDollarSign className="size-4" />} label="View Sold" hint={`${sold} sold`} accent="bg-rose-400/15 text-rose-300" />
         <Action href="/admin/users" icon={<Users className="size-4" />} label="Manage Users" hint="Roles & access" accent="bg-cyan-400/15 text-cyan-300" />
         <Action onClick={() => setExportOpen(true)} icon={<Download className="size-4" />} label="Export Accounts" hint="CSV download" accent="bg-sky-400/15 text-sky-300" />

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Backpack, BadgeDollarSign, CircleCheck, History, Hourglass, Package, Plus } from "lucide-react";
+import { Backpack, BadgeDollarSign, CircleX, History, Hourglass, Plus } from "lucide-react";
 import { AccountTable } from "@/components/accounts/AccountTable";
 import { FilterBar } from "@/components/accounts/FilterBar";
 import { HeroBanner, HeroChip } from "@/components/HeroBanner";
@@ -52,12 +52,11 @@ export default async function SubmitterDashboard({ searchParams }: { searchParam
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard label="My Accounts" value={stats.total} icon={Backpack} tone="yellow" href="/dashboard" />
         <StatCard label="Pending" value={stats.pending} icon={Hourglass} tone="yellow" href="/dashboard?status=PENDING" />
-        <StatCard label="Approved" value={stats.reviewed} icon={CircleCheck} tone="blue" hint="Passed review" />
         <StatCard label="Sold" value={stats.sold} icon={BadgeDollarSign} tone="rose" href="/dashboard?status=SOLD" />
-        <StatCard label="Unsold" value={stats.unsold} icon={Package} tone="emerald" href="/dashboard?status=UNSOLD" />
+        <StatCard label="Rejected" value={stats.rejected} icon={CircleX} tone="slate" href="/dashboard?status=REJECTED" />
       </div>
 
       <section className="space-y-4" aria-labelledby="my-accounts">

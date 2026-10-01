@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BadgeDollarSign, Banknote, CalendarCheck, ChartColumn, Coins, Package, PackageOpen, Shapes, Wallet } from "lucide-react";
+import { BadgeDollarSign, Banknote, CalendarCheck, ChartColumn, Coins, Hourglass, PackageOpen, Shapes, Wallet } from "lucide-react";
 import { AccountTable } from "@/components/accounts/AccountTable";
 import { FilterBar } from "@/components/accounts/FilterBar";
 import { MonthlySalesChart } from "@/components/sales/MonthlySalesChart";
@@ -38,17 +38,16 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
         icon={Banknote}
         description="Track sold inventory, monthly performance and what is still available."
         actions={
-          <Link href="/admin/accounts?status=UNSOLD" className="btn btn-ghost">
-            <Package className="size-4" /> Available inventory
+          <Link href="/admin/pending" className="btn btn-ghost">
+            <Hourglass className="size-4" /> Pending inventory
           </Link>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard label="Total Sold" value={overview.total_sold} icon={BadgeDollarSign} tone="rose" />
-        <StatCard label="Total Unsold" value={overview.total_unsold} icon={Package} tone="emerald" />
         <StatCard label="Sold This Month" value={overview.sold_this_month} icon={CalendarCheck} tone="blue" />
-        <StatCard label="Available Inventory" value={overview.available} icon={PackageOpen} tone="sky" hint="Unsold + approved" />
+        <StatCard label="Pending (In Stock)" value={overview.available} icon={PackageOpen} tone="yellow" href="/admin/pending" />
         <StatCard label="Revenue (all time)" value={formatCurrency(overview.revenue_total)} icon={Wallet} tone="yellow" />
         <StatCard label="Revenue this month" value={formatCurrency(overview.revenue_this_month)} icon={Coins} tone="amber" />
       </div>

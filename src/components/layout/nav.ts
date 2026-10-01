@@ -3,12 +3,12 @@ import {
   BadgeDollarSign,
   Banknote,
   Bot,
+  CircleX,
   ClipboardList,
   Clock,
   History,
   Hourglass,
   House,
-  Package,
   PackageCheck,
   Plus,
   Settings,
@@ -24,7 +24,7 @@ export interface NavItem {
   /** Tailwind classes for the icon chip */
   accent: string;
   /** Badge counter key (filled from server stats) */
-  counter?: "pending" | "total" | "unsold" | "sold";
+  counter?: "pending" | "total" | "sold";
 }
 
 export interface NavSection {
@@ -44,7 +44,7 @@ export const ADMIN_NAV: NavSection[] = [
       { href: "/admin/accounts?type=BOT", label: "Bot IDs", icon: Bot, accent: "text-violet-300 bg-violet-400/10" },
       { href: "/admin/accounts?type=OLD", label: "Old IDs", icon: Clock, accent: "text-amber-300 bg-amber-400/10" },
       { href: "/admin/accounts?status=SOLD", label: "Sold", icon: BadgeDollarSign, accent: "text-rose-300 bg-rose-400/10" },
-      { href: "/admin/accounts?status=UNSOLD", label: "Unsold", icon: Package, accent: "text-emerald-300 bg-emerald-400/10" },
+      { href: "/admin/accounts?status=REJECTED", label: "Rejected", icon: CircleX, accent: "text-slate-300 bg-slate-400/10" },
       { href: "/admin/pending", label: "Pending Review", icon: Hourglass, accent: "text-yellow-300 bg-yellow-400/10", counter: "pending" },
     ],
   },
@@ -70,8 +70,8 @@ export const SUBMITTER_NAV: NavSection[] = [
     title: "My Submissions",
     items: [
       { href: "/dashboard?status=PENDING", label: "Pending Review", icon: Hourglass, accent: "text-yellow-300 bg-yellow-400/10", counter: "pending" },
-      { href: "/dashboard?status=UNSOLD", label: "Unsold", icon: Package, accent: "text-emerald-300 bg-emerald-400/10" },
       { href: "/dashboard?status=SOLD", label: "Sold", icon: PackageCheck, accent: "text-rose-300 bg-rose-400/10" },
+      { href: "/dashboard?status=REJECTED", label: "Rejected", icon: CircleX, accent: "text-slate-300 bg-slate-400/10" },
       { href: "/dashboard/history", label: "Submission History", icon: History, accent: "text-indigo-300 bg-indigo-400/10" },
     ],
   },

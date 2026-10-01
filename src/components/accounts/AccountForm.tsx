@@ -8,8 +8,8 @@ import { createAccountAction, updateAccountAction, type AccountFormState } from 
 import { CaptureBall } from "@/components/art/CaptureBall";
 import { AccountStatusBadge } from "@/components/ui/Badges";
 import { useToast } from "@/components/ui/Toast";
-import { ACCOUNT_STATUSES, STATUS_META, TYPE_META } from "@/lib/constants";
-import { formatAccountId } from "@/lib/format";
+import { EDIT_STATUSES, STATUS_META, TYPE_META } from "@/lib/constants";
+import { formatAccountId, formatCurrency } from "@/lib/format";
 import type { AccountStatus, AccountType, Role } from "@/lib/types";
 
 export interface AccountFormDefaults {
@@ -20,6 +20,7 @@ export interface AccountFormDefaults {
   ptcLogin: string | null;
   notes: string | null;
   askingPrice: number | null;
+  salePrice: number | null;
 }
 
 const TYPE_OPTIONS: Array<{ value: AccountType; icon: typeof Sparkles; hint: string; ring: string; chip: string }> = [
@@ -88,6 +89,9 @@ export function AccountForm({
   const [submitted, setSubmitted] = useState<AccountFormState | null>(null);
   // Drives the asking-price field, which only applies to NEW IDs.
   const [selectedType, setSelectedType] = useState<AccountType>(defaults?.type ?? "NEW");
+  // Admin edit: Sold reveals the "sold price" field.
+  const [selectedStatus, setSelectedStatus] = useState<AccountStatus | undefined>(defaults?.status);
+  const statusOptions = defaults && !EDIT_STATUSES.includes(defaults.status) ? [...EDIT_STATUSES, defaults.status] : EDIT_STATUSES;
   const errors = state.fieldErrors ?? {};
 
   // With JS, dispatch manually so React does not reset the fields when the
@@ -321,24 +325,55 @@ export function AccountForm({
             <label htmlFor="status" className="label">
               Status
             </label>
-            <select id="status" name="status" defaultValue={defaults.status} className="select">
-              {ACCOUNT_STATUSES.map((s) => (
+            <select
+              id="status"
+              name="status"
+              defaultValue={defaults.status}
+              onChange={(event) => setSelectedStatus(event.target.value as AccountStatus)}
+              className="select"
+            >
+              {statusOptions.map((s) => (
                 <option key={s} value={s}>
                   {STATUS_META[s].label}
+                  {EDIT_STATUSES.includes(s) ? "" : " (current)"}
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-xs text-slate-500">Changing the status records review / sale timestamps and notifies the submitter.</p>
+            <p className="mt-2 text-xs text-slate-500">Changing the status records the sale date and notifies the submitter.</p>
+
+            {selectedStatus === "SOLD" && (
+              <div className="mt-4 rounded-2xl border border-poke-yellow/25 bg-poke-yellow/[0.05] p-4 animate-fade-up">
+                <p className="text-[11px] font-bold tracking-[0.16em] text-poke-yellow uppercase">Sale details</p>
+                {defaults.askingPrice !== null && (
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Submitter asked</span>
+                    <span className="font-semibold text-sky-200 tabular-nums">{formatCurrency(defaults.askingPrice)}</span>
+                  </div>
+                )}
+                <label htmlFor="salePrice" className="label mt-3">
+                  Sold for
+                </label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">$</span>
+                  <input
+                    id="salePrice"
+                    name="salePrice"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    max="1000000"
+                    step="0.01"
+                    required
+                    defaultValue={defaults.salePrice ?? defaults.askingPrice ?? ""}
+                    placeholder="0.00"
+                    aria-invalid={Boolean(errors.salePrice)}
+                    className="input pl-7 font-semibold tabular-nums"
+                  />
+                </div>
+                <FieldError messages={errors.salePrice} />
+              </div>
+            )}
           </div>
-        )}
-        {isAdmin && !isEdit && (
-          <label className="card flex cursor-pointer items-start gap-3 p-5">
-            <input type="checkbox" name="autoApprove" className="mt-0.5 size-4 accent-yellow-400" />
-            <span>
-              <span className="block text-sm font-semibold text-white">Approve immediately</span>
-              <span className="block text-xs text-slate-400">Skip the review queue and list the account as Unsold.</span>
-            </span>
-          </label>
         )}
 
         <div className="card relative overflow-hidden p-5">
