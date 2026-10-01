@@ -48,6 +48,7 @@ export default async function SubmitterEditPage({ params }: { params: Promise<{ 
           loginEmail: account.login_email,
           ptcLogin: account.ptc_login,
           notes: account.notes,
+          askingPrice: account.asking_price,
         }}
       />
     </div>

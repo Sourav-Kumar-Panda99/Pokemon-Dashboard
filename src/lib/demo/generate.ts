@@ -42,6 +42,7 @@ export interface DemoAccount {
   ptcLogin: string | null;
   ptcPassword: string | null;
   notes: string | null;
+  askingPrice: number | null;
   createdAt: Date;
   updatedAt: Date;
   approvedAt: Date | null;
@@ -250,6 +251,7 @@ export function generateDemoData(now: Date = new Date(), seed = 20261001): DemoD
       ptcLogin,
       ptcPassword: ptcLogin ? `Ptc-${gibberish(9)}` : null,
       notes: rand() < 0.35 ? pick(NOTES) : null,
+      askingPrice: type === "NEW" ? Math.round((12 + rand() * 30) * 2) / 2 : null,
       createdAt,
       updatedAt: lastEventAt,
       approvedAt,

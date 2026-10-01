@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CaptureBall } from "@/components/art/CaptureBall";
 import { Avatar } from "@/components/ui/Avatar";
 import { AccountTypeBadge } from "@/components/ui/Badges";
-import { formatAccountId, formatDateTime, formatRelative } from "@/lib/format";
+import { formatAccountId, formatCurrency, formatDateTime, formatRelative } from "@/lib/format";
 import type { AccountRow } from "@/lib/types";
 import { useAccountActions } from "./useAccountActions";
 
@@ -71,6 +71,12 @@ export function PendingReview({ rows }: { rows: AccountRow[] }) {
                   <dt className="text-slate-500">PTC Login</dt>
                   <dd className="truncate text-right font-mono text-slate-300">{row.ptc_login ?? "—"}</dd>
                 </div>
+                {row.asking_price !== null && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Asking Price</dt>
+                    <dd className="font-semibold text-sky-200 tabular-nums">{formatCurrency(row.asking_price)}</dd>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <dt className="flex items-center gap-1.5 text-slate-500">
                     <UserRound className="size-3.5" /> Submitted By

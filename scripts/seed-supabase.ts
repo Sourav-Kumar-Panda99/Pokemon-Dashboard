@@ -90,6 +90,7 @@ async function main() {
             type: a.type,
             status: a.status,
             notes: a.notes,
+            asking_price: a.askingPrice,
             created_at: a.createdAt.toISOString(),
             updated_at: a.updatedAt.toISOString(),
             approved_at: a.approvedAt?.toISOString() ?? null,

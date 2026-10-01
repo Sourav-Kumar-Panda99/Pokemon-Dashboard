@@ -48,12 +48,13 @@ export const SORT_OPTIONS = [
   { value: "id:desc", label: "Account ID ↓" },
   { value: "sold_at:desc", label: "Recently sold" },
   { value: "login_email:asc", label: "Login email A–Z" },
+  { value: "asking_price:desc", label: "Asking price ↓" },
   { value: "submitter:asc", label: "Submitter A–Z" },
   { value: "type:asc", label: "Type" },
   { value: "status:asc", label: "Status" },
 ] as const;
 
-export const SORT_KEYS = ["id", "created_at", "updated_at", "sold_at", "type", "status", "login_email", "submitter"] as const;
+export const SORT_KEYS = ["id", "created_at", "updated_at", "sold_at", "type", "status", "login_email", "submitter", "asking_price"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 
 export const PAGE_SIZES = [10, 20, 50, 100] as const;

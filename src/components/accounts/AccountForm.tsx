@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
-import { Bot, CircleCheck, Clock, Eye, EyeOff, KeyRound, LoaderCircle, Mail, NotebookPen, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { BadgeDollarSign, Bot, CircleCheck, Clock, Eye, EyeOff, KeyRound, LoaderCircle, Mail, NotebookPen, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { createAccountAction, updateAccountAction, type AccountFormState } from "@/app/actions/accounts";
 import { CaptureBall } from "@/components/art/CaptureBall";
 import { AccountStatusBadge } from "@/components/ui/Badges";
@@ -19,6 +19,7 @@ export interface AccountFormDefaults {
   loginEmail: string;
   ptcLogin: string | null;
   notes: string | null;
+  askingPrice: number | null;
 }
 
 const TYPE_OPTIONS: Array<{ value: AccountType; icon: typeof Sparkles; hint: string; ring: string; chip: string }> = [
@@ -85,6 +86,8 @@ export function AccountForm({
   const [state, formAction, pending] = useActionState<AccountFormState, FormData>(action, {});
   const [formKey, setFormKey] = useState(0);
   const [submitted, setSubmitted] = useState<AccountFormState | null>(null);
+  // Drives the asking-price field, which only applies to NEW IDs.
+  const [selectedType, setSelectedType] = useState<AccountType>(defaults?.type ?? "NEW");
   const errors = state.fieldErrors ?? {};
 
   // With JS, dispatch manually so React does not reset the fields when the
@@ -136,6 +139,7 @@ export function AccountForm({
             className="btn btn-primary"
             onClick={() => {
               setSubmitted(null);
+              setSelectedType("NEW");
               setFormKey((k) => k + 1);
             }}
           >
@@ -237,7 +241,14 @@ export function AccountForm({
           <div className="mt-4 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Account type">
             {TYPE_OPTIONS.map((option) => (
               <label key={option.value} className="relative cursor-pointer">
-                <input type="radio" name="type" value={option.value} defaultChecked={(defaults?.type ?? "NEW") === option.value} className="peer sr-only" />
+                <input
+                  type="radio"
+                  name="type"
+                  value={option.value}
+                  defaultChecked={(defaults?.type ?? "NEW") === option.value}
+                  onChange={() => setSelectedType(option.value)}
+                  className="peer sr-only"
+                />
                 <span className={`flex h-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/25 peer-focus-visible:outline-2 peer-focus-visible:outline-poke-yellow ${option.ring}`}>
                   <span className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg ${option.chip}`}>
                     <option.icon className="size-5" />
@@ -251,6 +262,39 @@ export function AccountForm({
             ))}
           </div>
           <FieldError messages={errors.type} />
+
+          {selectedType === "NEW" && (
+            <div className="mt-5 rounded-2xl border border-sky-400/25 bg-sky-500/[0.06] p-4 animate-fade-up">
+              <label htmlFor="askingPrice" className="flex items-center gap-2 text-sm font-semibold text-white">
+                <BadgeDollarSign className="size-4 text-sky-300" /> Asking price
+                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+                  {isAdmin ? "Optional" : "Required"}
+                </span>
+              </label>
+              <div className="relative mt-3 max-w-xs">
+                <span className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">$</span>
+                <input
+                  id="askingPrice"
+                  name="askingPrice"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  max="1000000"
+                  step="0.01"
+                  required={!isAdmin}
+                  defaultValue={defaults?.askingPrice ?? ""}
+                  placeholder="0.00"
+                  aria-invalid={Boolean(errors.askingPrice)}
+                  aria-describedby="askingPrice-hint"
+                  className="input pl-7 tabular-nums"
+                />
+              </div>
+              <p id="askingPrice-hint" className="mt-2 text-xs text-slate-400">
+                {isAdmin ? "The price this New ID should sell for." : "How much you want for this New ID. The admin sees it when reviewing your submission."}
+              </p>
+              <FieldError messages={errors.askingPrice} />
+            </div>
+          )}
         </section>
 
         <section className="card p-5 sm:p-6">

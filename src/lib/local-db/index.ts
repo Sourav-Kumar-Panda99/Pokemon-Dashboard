@@ -30,10 +30,23 @@ export async function openLocalDatabase(options: { projectRoot: string; dataDir?
   const fresh = !probe.rows[0]?.ready;
   if (fresh) {
     await db.exec(readFileSync(path.join(/*turbopackIgnore: true*/ projectRoot, "supabase", "dev", "pglite-shim.sql"), "utf8"));
-    const migrationsDir = path.join(/*turbopackIgnore: true*/ projectRoot, "supabase", "migrations");
-    for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()) {
-      await db.exec(readFileSync(path.join(/*turbopackIgnore: true*/ migrationsDir, file), "utf8"));
-    }
+  }
+
+  // Track applied migrations so existing demo databases pick up new ones.
+  await db.exec(`create schema if not exists local_meta;
+    create table if not exists local_meta.migrations (name text primary key, applied_at timestamptz not null default now());`);
+  const migrationsDir = path.join(/*turbopackIgnore: true*/ projectRoot, "supabase", "migrations");
+  const files = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+  const applied = new Set((await db.query<{ name: string }>(`select name from local_meta.migrations`)).rows.map((r) => r.name));
+  if (!fresh && applied.size === 0 && files.length > 0) {
+    // Database created before tracking existed: the initial migration is already in place.
+    await db.query(`insert into local_meta.migrations (name) values ($1)`, [files[0]]);
+    applied.add(files[0]);
+  }
+  for (const file of files) {
+    if (applied.has(file)) continue;
+    await db.exec(readFileSync(path.join(/*turbopackIgnore: true*/ migrationsDir, file), "utf8"));
+    await db.query(`insert into local_meta.migrations (name) values ($1)`, [file]);
   }
   return { db, fresh };
 }
@@ -175,8 +188,8 @@ export async function seedLocalDatabase(db: LocalDb, options: { encryptionKey: B
       const id = (
         await tx.query<{ id: number }>(
           `insert into public.accounts
-             (submitter_id, type, status, notes, created_at, updated_at, approved_at, approved_by, rejected_at, rejected_by, sold_at, sold_by)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning id`,
+             (submitter_id, type, status, notes, created_at, updated_at, approved_at, approved_by, rejected_at, rejected_by, sold_at, sold_by, asking_price)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
           [
             userIds.get(account.submitterKey),
             account.type,
@@ -190,6 +203,7 @@ export async function seedLocalDatabase(db: LocalDb, options: { encryptionKey: B
             account.rejectedByKey ? userIds.get(account.rejectedByKey) : null,
             account.soldAt?.toISOString() ?? null,
             account.soldByKey ? userIds.get(account.soldByKey) : null,
+            account.askingPrice,
           ],
         )
       ).rows[0].id;

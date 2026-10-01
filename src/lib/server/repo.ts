@@ -84,6 +84,7 @@ export const submitAccount = (input: {
   ptcPasswordEnc?: string;
   notes?: string;
   autoApprove?: boolean;
+  askingPrice?: number;
 }) =>
   rpc<number>("submit_account", {
     p_type: input.type,
@@ -93,6 +94,7 @@ export const submitAccount = (input: {
     p_ptc_password_enc: input.ptcPasswordEnc ?? null,
     p_notes: input.notes ?? null,
     p_auto_approve: input.autoApprove ?? false,
+    p_asking_price: input.askingPrice ?? null,
   });
 
 export const updateAccount = (input: {
@@ -104,6 +106,7 @@ export const updateAccount = (input: {
   ptcPasswordEnc?: string;
   notes?: string;
   status?: AccountStatus;
+  askingPrice?: number;
 }) =>
   rpc<void>("update_account", {
     p_account_id: input.id,
@@ -114,6 +117,7 @@ export const updateAccount = (input: {
     p_ptc_password_enc: input.ptcPasswordEnc ?? null,
     p_notes: input.notes ?? null,
     p_status: input.status ?? null,
+    p_asking_price: input.askingPrice ?? null,
   });
 
 export const setAccountStatus = (ids: number[], action: StatusAction, price?: number | null, reason?: string) =>
@@ -136,6 +140,7 @@ export interface ExportRow {
   id: number;
   type: AccountType;
   status: AccountStatus;
+  asking_price: number | null;
   login_email: string;
   ptc_login: string | null;
   submitter_name: string | null;

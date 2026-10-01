@@ -128,6 +128,7 @@ export function AccountTable({
                 )}
                 <SortHeader column="type">Type</SortHeader>
                 <SortHeader column="status">Status</SortHeader>
+                {!showSale && <SortHeader column="asking_price" className="text-right">Asking Price</SortHeader>}
                 {isAdmin && <SortHeader column="submitter">Submitted By</SortHeader>}
                 {showSale ? <SortHeader column="sold_at">Sold On</SortHeader> : <SortHeader column="created_at">{isAdmin ? "Added On" : "Submitted"}</SortHeader>}
                 {showSale && <th scope="col" className="px-2.5 py-3 text-right">Price</th>}
@@ -182,6 +183,11 @@ export function AccountTable({
                     <td className="px-2.5 py-3">
                       <AccountStatusBadge status={row.status} />
                     </td>
+                    {!showSale && (
+                      <td className="px-2.5 py-3 text-right whitespace-nowrap tabular-nums">
+                        {row.asking_price !== null ? <span className="font-semibold text-sky-200">{formatCurrency(row.asking_price)}</span> : <span className="text-slate-600">—</span>}
+                      </td>
+                    )}
                     {isAdmin && (
                       <td className="max-w-[160px] px-3 py-3 text-slate-300">
                         <Submitter row={row} />
@@ -258,6 +264,7 @@ export function AccountTable({
             <div className="mt-3 flex items-center justify-between gap-2">
               <p className="text-xs text-slate-500">
                 {showSale ? `Sold ${formatDate(row.sold_at)} · ${formatCurrency(row.sale_price)}` : `Added ${formatDate(row.created_at)}`}
+                {!showSale && row.asking_price !== null && <span className="ml-2 font-semibold text-sky-200">Asking {formatCurrency(row.asking_price)}</span>}
               </p>
               <AccountRowActions row={row} role={role} base={base} onAction={request} />
             </div>

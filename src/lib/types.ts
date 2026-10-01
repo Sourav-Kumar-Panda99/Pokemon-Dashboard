@@ -45,6 +45,7 @@ export interface AccountRow {
   type: AccountType;
   status: AccountStatus;
   notes: string | null;
+  asking_price: number | null;
   created_at: string;
   updated_at: string;
   approved_at: string | null;
@@ -93,6 +94,7 @@ export interface AccountDetail {
   type: AccountType;
   status: AccountStatus;
   notes: string | null;
+  asking_price: number | null;
   created_at: string;
   updated_at: string;
   approved_at: string | null;

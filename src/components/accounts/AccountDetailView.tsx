@@ -61,7 +61,7 @@ export function AccountDetailView({ account, viewer }: { account: AccountDetail;
             </div>
           </div>
           <AccountDetailActions
-            account={{ id: account.id, login_email: account.login_email, ptc_login: account.ptc_login, type: account.type, status: account.status }}
+            account={{ id: account.id, login_email: account.login_email, ptc_login: account.ptc_login, type: account.type, status: account.status, asking_price: account.asking_price }}
             role={viewer.role}
             base={base}
           />
@@ -159,6 +159,11 @@ export function AccountDetailView({ account, viewer }: { account: AccountDetail;
                   {inventoryState}
                 </span>
               </Row>
+              {(account.type === "NEW" || account.asking_price !== null) && (
+                <Row label="Asking Price">
+                  {account.asking_price !== null ? <span className="font-semibold text-sky-200">{formatCurrency(account.asking_price)}</span> : "—"}
+                </Row>
+              )}
               <Row label="Sale Date">{account.sold_at ? formatDateTime(account.sold_at) : "—"}</Row>
               {isAdmin && <Row label="Sale Price">{formatCurrency(account.sale_price)}</Row>}
               {account.sold_at && isAdmin && <Row label="Sold By">{adminLabel(account.sold_by_name)}</Row>}

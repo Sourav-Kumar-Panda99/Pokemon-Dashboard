@@ -64,9 +64,10 @@ export function useAccountActions(options: { onDone?: (kind: AccountActionKind, 
   const [pending, startTransition] = useTransition();
   const toast = useToast();
 
-  const request = (kind: AccountActionKind, ids: number[]) => {
+  /** `defaultPrice` pre-fills the sale price (e.g. with the submitter's asking price). */
+  const request = (kind: AccountActionKind, ids: number[], defaultPrice?: number | null) => {
     if (ids.length === 0) return;
-    setPrice("");
+    setPrice(kind === "MARK_SOLD" && defaultPrice !== null && defaultPrice !== undefined ? String(defaultPrice) : "");
     setReason("");
     setCurrent({ kind, ids });
   };

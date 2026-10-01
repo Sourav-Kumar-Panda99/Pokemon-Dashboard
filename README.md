@@ -31,7 +31,7 @@ To try the production build offline: `npm run build && npm run start:demo`.
 ## Production setup (Supabase)
 
 1. **Create a Supabase project.**
-2. **Apply the schema**: run `supabase/migrations/20261001000000_init.sql` in the SQL editor (or `supabase db push` with the Supabase CLI).
+2. **Apply the schema**: run every file in `supabase/migrations/` **in filename order** in the SQL editor (or `supabase db push` with the Supabase CLI). Already set up? Just run the newer files, e.g. `20261002000000_asking_price.sql`.
 3. **Configure env**: `cp .env.example .env.local`, then fill in
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY`
    - `CREDENTIALS_ENCRYPTION_KEY` — generate with `npm run gen:key` and **back it up** (without it stored passwords cannot be decrypted)
@@ -72,7 +72,7 @@ Rate limiting is in-memory (per server instance). For multi-instance deployments
 `supabase/migrations/20261001000000_init.sql`
 
 - `profiles` — app users (1:1 with `auth.users`): name, email, role (`ADMIN` / `SUBMITTER`), active flag
-- `accounts` — type (`NEW` / `BOT` / `OLD`), status (`PENDING` / `APPROVED` / `UNSOLD` / `SOLD` / `REJECTED`), notes, review & sale stamps
+- `accounts` — type (`NEW` / `BOT` / `OLD`), status (`PENDING` / `APPROVED` / `UNSOLD` / `SOLD` / `REJECTED`), notes, asking price (New IDs only; required from submitters), review & sale stamps
 - `account_credentials` — login email, PTC login, **encrypted** password + PTC password
 - `account_activity` — audit trail with `account_ref` that survives deletion
 - `sales` — sale records (price optional; voided when marked unsold)

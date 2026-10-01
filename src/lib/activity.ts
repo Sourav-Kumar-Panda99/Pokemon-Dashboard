@@ -8,6 +8,7 @@ const FIELD_LABELS: Record<string, string> = {
   ptc_login: "PTC login",
   ptc_password: "PTC password",
   notes: "notes",
+  asking_price: "asking price",
 };
 
 export const ACTION_LABELS: Record<ActivityAction, string> = {
@@ -86,8 +87,10 @@ export function describeActivity(entry: ActivityEntry, viewerId?: string): strin
       return `${actor} changed ${account} from ${niceType(d.from)} to ${niceType(d.to)}`;
     case "STATUS_CHANGED":
       return `${actor} changed ${account} from ${statusLabel(d.from)} to ${statusLabel(d.to)}`;
-    case "EDITED":
-      return `${actor} edited the notes on ${account}`;
+    case "EDITED": {
+      const fields = Array.isArray(d.fields) ? d.fields.map((f) => FIELD_LABELS[String(f)] ?? String(f)).join(" and ") : "details";
+      return `${actor} edited the ${fields} on ${account}`;
+    }
     case "CREDENTIALS_UPDATED": {
       const fields = Array.isArray(d.fields) ? d.fields.map((f) => FIELD_LABELS[String(f)] ?? String(f)).join(", ") : "credentials";
       return `${actor} updated ${fields} on ${account}`;

@@ -68,11 +68,27 @@ const ptcLoginField = z
   .optional()
   .transform((value) => (value ? value : undefined));
 
+// Asking price in USD; only meaningful for NEW IDs (ignored for other types).
+const askingPriceField = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value, ctx) => {
+    if (!value) return undefined;
+    const price = Number(value);
+    if (!Number.isFinite(price) || price < 0 || price > 1_000_000) {
+      ctx.addIssue({ code: "custom", message: "Enter a valid price" });
+      return z.NEVER;
+    }
+    return Math.round(price * 100) / 100;
+  });
+
 const accountBase = {
   type: z.enum(ACCOUNT_TYPES as [AccountType, ...AccountType[]], { message: "Choose an account type" }),
   loginEmail: emailField,
   ptcLogin: ptcLoginField,
   notes: optionalText(1000),
+  askingPrice: askingPriceField,
 };
 
 export const accountCreateSchema = z

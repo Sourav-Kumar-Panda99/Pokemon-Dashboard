@@ -14,7 +14,7 @@ export function AccountDetailActions({
   role,
   base,
 }: {
-  account: Pick<AccountRow, "id" | "login_email" | "ptc_login" | "type" | "status">;
+  account: Pick<AccountRow, "id" | "login_email" | "ptc_login" | "type" | "status" | "asking_price">;
   role: Role;
   base: "/admin" | "/dashboard";
 }) {
@@ -46,7 +46,7 @@ export function AccountDetailActions({
         </button>
       )}
       {can("MARK_SOLD") && (
-        <button type="button" className="btn btn-primary" onClick={() => request("MARK_SOLD", [account.id])}>
+        <button type="button" className="btn btn-primary" onClick={() => request("MARK_SOLD", [account.id], account.asking_price)}>
           <BadgeDollarSign className="size-4" /> Mark Sold
         </button>
       )}

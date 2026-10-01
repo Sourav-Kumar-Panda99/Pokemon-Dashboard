@@ -33,7 +33,7 @@ export function AccountRowActions({
   row: AccountRow;
   role: Role;
   base: string;
-  onAction: (kind: AccountActionKind, ids: number[]) => void;
+  onAction: (kind: AccountActionKind, ids: number[], defaultPrice?: number | null) => void;
 }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
@@ -100,7 +100,7 @@ export function AccountRowActions({
                 Reject
               </MenuItem>
               <MenuDivider />
-              <MenuItem tone="warning" icon={<BadgeDollarSign />} disabled={!can("MARK_SOLD")} onSelect={() => (close(), onAction("MARK_SOLD", [row.id]))}>
+              <MenuItem tone="warning" icon={<BadgeDollarSign />} disabled={!can("MARK_SOLD")} onSelect={() => (close(), onAction("MARK_SOLD", [row.id], row.asking_price))}>
                 Mark Sold
               </MenuItem>
               <MenuItem icon={<Undo2 />} disabled={!can("MARK_UNSOLD")} onSelect={() => (close(), onAction("MARK_UNSOLD", [row.id]))}>

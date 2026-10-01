@@ -73,6 +73,7 @@ async function main() {
       p_ptc_login: "riley_ptc",
       p_ptc_password_enc: enc("ptc-1"),
       p_notes: "first",
+      p_asking_price: 25,
     });
     samAccount = await rpc<number>(sam, "submit_account", {
       p_type: "BOT",
@@ -84,13 +85,13 @@ async function main() {
     assert.equal(detail.login_email, "riley.trainer@example.com");
   });
   await test("plaintext passwords are refused by the database", async () => {
-    await rejects(rpc(riley, "submit_account", { p_type: "NEW", p_login_email: "x@example.com", p_login_password_enc: "hunter2" }), "encrypted");
+    await rejects(rpc(riley, "submit_account", { p_type: "NEW", p_login_email: "x@example.com", p_login_password_enc: "hunter2", p_asking_price: 5 }), "encrypted");
   });
   await test("duplicate login emails are refused", async () => {
-    await rejects(rpc(sam, "submit_account", { p_type: "NEW", p_login_email: "riley.trainer@example.com", p_login_password_enc: enc("a") }), "already exists");
+    await rejects(rpc(sam, "submit_account", { p_type: "NEW", p_login_email: "riley.trainer@example.com", p_login_password_enc: enc("a"), p_asking_price: 5 }), "already exists");
   });
   await test("PTC login without password is refused", async () => {
-    await rejects(rpc(sam, "submit_account", { p_type: "NEW", p_login_email: "y@example.com", p_login_password_enc: enc("a"), p_ptc_login: "only_login" }), "PTC password");
+    await rejects(rpc(sam, "submit_account", { p_type: "NEW", p_login_email: "y@example.com", p_login_password_enc: enc("a"), p_ptc_login: "only_login", p_asking_price: 5 }), "PTC password");
   });
   await test("auto-approve is honoured for admins only", async () => {
     adminAccount = await rpc<number>(admin, "submit_account", { p_type: "OLD", p_login_email: "admin.add@example.com", p_login_password_enc: enc("pw-3"), p_auto_approve: true });
@@ -100,6 +101,18 @@ async function main() {
     const sneakyDetail = await rpc<{ status: string }>(sam, "get_account_detail", { p_account_id: sneaky });
     assert.equal(sneakyDetail.status, "PENDING");
     await rpc(admin, "delete_accounts", { p_account_ids: [sneaky] });
+  });
+
+  await test("NEW IDs need an asking price from submitters; other types never keep one", async () => {
+    await rejects(rpc(sam, "submit_account", { p_type: "NEW", p_login_email: "noprice@example.com", p_login_password_enc: enc("a") }), "asking price");
+    await rejects(rpc(sam, "submit_account", { p_type: "NEW", p_login_email: "neg@example.com", p_login_password_enc: enc("a"), p_asking_price: -1 }), "valid asking price");
+    const detail = await rpc<{ asking_price: number }>(riley, "get_account_detail", { p_account_id: rileyAccount });
+    assert.equal(Number(detail.asking_price), 25);
+    const bot = await rpc<number>(sam, "submit_account", { p_type: "BOT", p_login_email: "botprice@example.com", p_login_password_enc: enc("a"), p_asking_price: 99 });
+    assert.equal((await rpc<{ asking_price: number | null }>(sam, "get_account_detail", { p_account_id: bot })).asking_price, null);
+    const adminNew = await rpc<number>(admin, "submit_account", { p_type: "NEW", p_login_email: "adminnew@example.com", p_login_password_enc: enc("a") });
+    assert.equal((await rpc<{ asking_price: number | null }>(admin, "get_account_detail", { p_account_id: adminNew })).asking_price, null);
+    await rpc(admin, "delete_accounts", { p_account_ids: [bot, adminNew] });
   });
 
   console.log("Row Level Security");
@@ -149,6 +162,13 @@ async function main() {
   await test("submitters cannot edit or delete someone else's account", async () => {
     await rejects(rpc(riley, "update_account", { p_account_id: samAccount, p_type: "OLD", p_login_email: "x@example.com" }), "Account not found");
     await rejects(rpc(riley, "delete_accounts", { p_account_ids: [samAccount] }), "No accounts could be deleted");
+  });
+  await test("submitter can change the asking price of a pending NEW ID (logged)", async () => {
+    await rpc(riley, "update_account", { p_account_id: rileyAccount, p_type: "NEW", p_login_email: "riley.trainer@example.com", p_ptc_login: "riley_ptc", p_notes: "first", p_asking_price: 30 });
+    const detail = await rpc<{ asking_price: number; activity: Array<{ action: string; details: { fields?: string[] } }> }>(riley, "get_account_detail", { p_account_id: rileyAccount });
+    assert.equal(Number(detail.asking_price), 30);
+    assert.ok(detail.activity.some((e) => e.action === "EDITED" && e.details.fields?.includes("asking_price")));
+    await rejects(rpc(riley, "update_account", { p_account_id: rileyAccount, p_type: "NEW", p_login_email: "riley.trainer@example.com", p_ptc_login: "riley_ptc" }), "asking price");
   });
   await test("submitter can edit own pending submission (password kept when omitted)", async () => {
     await rpc(riley, "update_account", { p_account_id: rileyAccount, p_type: "BOT", p_login_email: "riley.trainer@example.com", p_ptc_login: "riley_ptc", p_notes: "updated" });
@@ -267,6 +287,8 @@ async function main() {
     const anAdmin = (await fresh.db.query<{ id: string }>(`select id from public.profiles where role = 'ADMIN' limit 1`)).rows[0].id;
     const stats = await callAsUser<Record<string, number>>(fresh.db as LocalDb, anAdmin, "account_stats");
     assert.equal(stats.total, 250);
+    const newIds = await callAsUser<ListResult>(fresh.db, anAdmin, "list_accounts", { p_type: "NEW", p_page_size: 100 });
+    assert.ok(newIds.rows.every((r) => Number(r.asking_price) > 0), "seeded NEW IDs carry an asking price");
     assert.deepEqual([stats.new, stats.bot, stats.old], [85, 95, 70]);
     assert.deepEqual([stats.sold, stats.unsold, stats.pending], [70, 160, 12]);
     const page = await callAsUser<ListResult>(fresh.db, anAdmin, "list_accounts", { p_page: 13, p_page_size: 20 });

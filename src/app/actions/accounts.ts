@@ -31,7 +31,8 @@ export interface AccountFormState {
   status?: AccountStatus;
 }
 
-const FORM_KEYS = ["type", "loginEmail", "loginPassword", "ptcLogin", "ptcPassword", "notes", "autoApprove", "status"];
+const FORM_KEYS = ["type", "loginEmail", "loginPassword", "ptcLogin", "ptcPassword", "notes", "autoApprove", "status", "askingPrice"];
+const ASKING_PRICE_REQUIRED = { askingPrice: ["Enter your asking price for this new account"] };
 
 function refreshAll() {
   revalidatePath("/", "layout");
@@ -47,6 +48,9 @@ export async function createAccountAction(_prev: AccountFormState, formData: For
     if (!parsed.success) return { error: "Please fix the highlighted fields.", fieldErrors: fieldErrors(parsed.error) };
     const input = parsed.data;
     const autoApprove = user.role === "ADMIN" && input.autoApprove;
+    if (input.type === "NEW" && input.askingPrice === undefined && user.role !== "ADMIN") {
+      return { error: "Please fix the highlighted fields.", fieldErrors: ASKING_PRICE_REQUIRED };
+    }
 
     const id = await repo.submitAccount({
       type: input.type,
@@ -56,6 +60,7 @@ export async function createAccountAction(_prev: AccountFormState, formData: For
       ptcPasswordEnc: input.ptcPassword ? encryptCredential(input.ptcPassword) : undefined,
       notes: input.notes,
       autoApprove,
+      askingPrice: input.type === "NEW" ? input.askingPrice : undefined,
     });
     refreshAll();
     return { ok: true, accountId: id, status: autoApprove ? "UNSOLD" : "PENDING" };
@@ -71,6 +76,9 @@ export async function updateAccountAction(accountId: number, _prev: AccountFormS
     const parsed = accountUpdateSchema.safeParse(formValues(formData, FORM_KEYS));
     if (!parsed.success) return { error: "Please fix the highlighted fields.", fieldErrors: fieldErrors(parsed.error) };
     const input = parsed.data;
+    if (input.type === "NEW" && input.askingPrice === undefined && user.role !== "ADMIN") {
+      return { error: "Please fix the highlighted fields.", fieldErrors: ASKING_PRICE_REQUIRED };
+    }
 
     await repo.updateAccount({
       id: accountId,
@@ -81,6 +89,7 @@ export async function updateAccountAction(accountId: number, _prev: AccountFormS
       ptcPasswordEnc: input.ptcPassword ? encryptCredential(input.ptcPassword) : undefined,
       notes: input.notes,
       status: user.role === "ADMIN" ? input.status : undefined,
+      askingPrice: input.type === "NEW" ? input.askingPrice : undefined,
     });
     refreshAll();
     return { ok: true, accountId };
@@ -190,14 +199,14 @@ export async function exportAccountsAction(input: {
 
     const rows = await repo.exportAccounts(ids, parsed.data.includePasswords);
     const header = [
-      "account_id", "type", "status", "login_email",
+      "account_id", "type", "status", "asking_price", "login_email",
       ...(parsed.data.includePasswords ? ["login_password"] : []),
       "ptc_login",
       ...(parsed.data.includePasswords ? ["ptc_password"] : []),
       "submitted_by", "submitter_email", "created_at", "approved_at", "sold_at", "notes",
     ];
     const body = rows.map((row) => [
-      formatAccountId(row.id), row.type, row.status, row.login_email,
+      formatAccountId(row.id), row.type, row.status, row.asking_price, row.login_email,
       ...(parsed.data.includePasswords ? [row.login_password_enc ? decryptCredential(row.login_password_enc) : ""] : []),
       row.ptc_login,
       ...(parsed.data.includePasswords ? [row.ptc_password_enc ? decryptCredential(row.ptc_password_enc) : ""] : []),
