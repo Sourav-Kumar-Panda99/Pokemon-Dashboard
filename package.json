@@ -1,0 +1,43 @@
+{
+  "name": "go-account-manager",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "start:demo": "node scripts/start-demo.mjs",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:db": "node scripts/test-db.ts",
+    "db:seed": "node --env-file-if-exists=.env.local scripts/seed-supabase.ts",
+    "demo:reset": "node scripts/reset-demo.mjs",
+    "gen:key": "node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\""
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
+    "lucide-react": "^1.49.0",
+    "next": "16.3.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "type": "module",
+  "description": "GO Account Manager — Pokémon GO account inventory management (Next.js + Supabase)",
+  "engines": {
+    "node": ">=22.18"
+  }
+}
